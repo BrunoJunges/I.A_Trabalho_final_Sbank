@@ -1,0 +1,52 @@
+GUIA RÁPIDO PARA EXECUÇÃO - SBANK FRAUD SENTINEL
+
+Siga estes 6 passos para ver a aplicação funcionando.
+
+---------------------------------------------------------------------
+
+PASSO 1: PRÉ-REQUISITOS
+- Certifique-se de que você tem o Python 3 instalado em seu computador. Você pode verificar abrindo um terminal e digitando `python --version`.
+
+---------------------------------------------------------------------
+
+PASSO 2: OBTENHA OS ARQUIVOS
+- Crie uma nova pasta em seu computador (ex: "projeto_sbank").
+- Salve os dois arquivos, `app.py` e `dashboard.html`, DENTRO desta mesma pasta. É crucial que eles estejam juntos.
+
+---------------------------------------------------------------------
+
+PASSO 3: INSTALE AS DEPENDÊNCIAS
+- Abra um terminal (Prompt de Comando, PowerShell ou Terminal).
+- Navegue até a pasta que você criou no passo anterior. Exemplo: `cd C:\Users\SeuNome\Desktop\projeto_sbank`
+- Copie e cole o seguinte comando no terminal e pressione Enter:
+
+pip install Flask Flask-Cors pandas scikit-learn lightgbm
+
+- Aguarde a conclusão da instalação.
+
+---------------------------------------------------------------------
+
+PASSO 4: INICIE O BACKEND (A INTELIGÊNCIA ARTIFICIAL)
+- No mesmo terminal que já está na pasta correta, execute o seguinte comando:
+
+python app.py
+
+- Você verá algumas mensagens, incluindo "Modelo SBank treinado com sucesso!" e algo como "Running on http://127.0.0.1:5000".
+- **IMPORTANTE:** Deixe esta janela do terminal aberta. Se você fechá-la, a IA desliga e a aplicação para de funcionar.
+
+---------------------------------------------------------------------
+
+PASSO 5: ABRA O DASHBOARD (A INTERFACE)
+- Vá para a pasta onde você salvou os arquivos.
+- Encontre o arquivo `dashboard.html` e abra-o no seu navegador de internet padrão (Chrome, Firefox, Edge, etc.).
+
+---------------------------------------------------------------------
+
+PASSO 6: TESTE A APLICAÇÃO
+- Você deverá ver o dashboard "SBank Fraud Sentinel".
+- A cada 3-4 segundos, uma nova transação aparecerá na lista.
+- Observe as transações que aparecem destacadas em vermelho. Estas são as que a IA marcou como suspeitas.
+- Clique em qualquer transação (especialmente as vermelhas) para ver a análise completa no painel da direita.
+- Teste os botões "Aprovar Transação" e "Confirmar Fraude".
+
+Pronto! O sistema testado e funcionando.
