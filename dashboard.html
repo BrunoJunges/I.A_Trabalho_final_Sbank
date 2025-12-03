@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SBank Fraud Sentinel - v3.0 (Perfil SBank)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1300px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #1a2c5b; border-bottom: 2px solid #1a2c5b; padding-bottom: 10px; display: flex; align-items: center; }
+        h1 .live-dot { height: 10px; width: 10px; background-color: #ff4d4f; border-radius: 50%; margin-left: 15px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 77, 79, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0); } }
+        .main-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        h2 { color: #333; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; font-size: 0.9em;}
+        th { background-color: #f8f9fa; }
+        tr:hover { background-color: #f1f1f1; cursor: pointer; }
+        tr.selected { background-color: #e0e7ff !important; }
+        .alert { background-color: #fff1f0 !important; border-left: 5px solid #ff4d4f; font-weight: bold; color: #a61d24; }
+        .processed { text-decoration: line-through; color: #888; }
+        .details-container { background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
+        #details-content p { margin: 12px 0; font-size: 0.95em; }
+        #details-content strong { color: #1a2c5b; }
+        #justification-box { background: #fffbe6; border: 1px solid #ffe58f; padding: 10px; border-radius: 4px; margin-top: 20px; }
+        .actions button { width: 100%; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: background-color 0.2s; }
+        .approve-btn { background-color: #28a745; color: white; }
+        .block-btn { background-color: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>SBank Fraud Sentinel <span class="live-dot"></span></h1>
+        <div class="main-layout">
+            <div class="feed-container">
+                <h2>Feed de Transações em Tempo Real</h2>
+                <table id="transactions-table">
+                    <thead><tr><th>ID</th><th>Valor</th><th>Score IA</th><th>Cliente (Idade)</th><th>Status</th></tr></thead>
+                    <tbody id="feed"></tbody>
+                </table>
+            </div>
+            <div class="details-container">
+                <h2>Análise de Risco</h2>
+                <div id="details-content"><p>Selecione uma transação para ver os detalhes.</p></div>
+                <div class="actions" id="actions-panel" style="display: none;">
+                    <button id="approve-btn" class="approve-btn">Aprovar Transação</button>
+                    <button id="block-btn" class="block-btn">Confirmar Fraude</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:5000/predict';
+        const feedBody = document.getElementById('feed');
+        const detailsContent = document.getElementById('details-content');
+        const actionsPanel = document.getElementById('actions-panel');
+        let allTransactions = new Map();
+        let selectedTransactionId = null;
+
+        // Adiciona listeners para os botões de ação
+        document.getElementById('approve-btn').addEventListener('click', () => processTransaction(selectedTransactionId, true));
+        document.getElementById('block-btn').addEventListener('click', () => processTransaction(selectedTransactionId, false));
+
+        function processTransaction(id, isApproved) {
+            if (!id) return;
+            const row = document.querySelector(`[data-id="${id}"]`);
+            if (!row || row.classList.contains('processed')) return;
+
+            row.classList.remove('alert');
+            row.classList.add('processed');
+            row.cells[4].textContent = isApproved ? 'Processado (Aprovado)' : 'Processado (Bloqueado)';
+            alert(`Ação registrada para a transação ${id}.`);
+        }
+
+        async function simularTransacao() {
+            const id = `TRX-${Date.now()}`;
+            // Simula um perfil de cliente realista para enviar à API
+            const customerProfile = {
+                idade: Math.floor(Math.random() * (60 - 18 + 1)) + 18,
+                renda_mensal: parseFloat((Math.random() * (15000 - 1500 + 1) + 1500).toFixed(2)),
+                score_credito: Math.floor(Math.random() * (950 - 300 + 1)) + 300,
+            };
+
+            const isSuspicious = Math.random() < 0.10;
+            const transactionData = {
+                id_transacao: id,
+                valor: isSuspicious 
+                    ? parseFloat((Math.random() * 3000 + 800).toFixed(2)) // Fraudes tem valores maiores
+                    : parseFloat((Math.random() * 150 + 10).toFixed(2)),  // Transações normais perto do ticket médio
+                hora_do_dia: Math.floor(Math.random() * 24),
+                eh_internacional: (isSuspicious && Math.random() < 0.5) ? 1 : 0,
+                ...customerProfile
+            };
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(transactionData)
+                });
+                if (!response.ok) throw new Error((await response.json()).erro);
+                
+                const result = await response.json();
+                allTransactions.set(id, { ...transactionData, analysis: result });
+                adicionarTransacaoAoFeed(transactionData, result);
+
+            } catch (error) {
+                console.error('Erro na simulação:', error);
+            }
+        }
+
+        function adicionarTransacaoAoFeed(data, analysis) {
+            const row = document.createElement('tr');
+            row.dataset.id = data.id_transacao;
+
+            const scorePercent = (analysis.probabilidade_fraude * 100).toFixed(2);
+            let status = 'Aprovada';
+            if (scorePercent > 85) {
+                row.classList.add('alert'); status = 'ALERTA MÁXIMO';
+            } else if (scorePercent > 50) {
+                row.classList.add('alert'); status = 'Análise Recomendada';
+            }
+
+            row.innerHTML = `<td>${data.id_transacao.slice(-6)}</td><td>${data.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td>${scorePercent}%</td><td>${data.idade} anos</td><td>${status}</td>`;
+            row.addEventListener('click', () => mostrarDetalhes(data.id_transacao));
+            feedBody.prepend(row);
+            if (feedBody.rows.length > 50) feedBody.deleteRow(-1);
+        }
+        
+        function mostrarDetalhes(id) {
+            if (selectedTransactionId === id) return;
+            selectedTransactionId = id;
+
+            const data = allTransactions.get(id);
+            const { analysis } = data;
+            
+            detailsContent.innerHTML = `
+                <h3>Perfil do Cliente</h3>
+                <p><strong>Idade:</strong> ${data.idade} anos</p>
+                <p><strong>Renda Mensal:</strong> ${data.renda_mensal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                <p><strong>Score de Crédito:</strong> ${data.score_credito}</p>
+                <hr>
+                <h3>Dados da Transação</h3>
+                <p><strong>Valor:</strong> ${data.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                <p><strong>Hora:</strong> ${data.hora_do_dia}h</p>
+                <p><strong>Internacional:</strong> ${data.eh_internacional === 1 ? 'Sim' : 'Não'}</p>
+                <div id="justification-box">
+                    <strong>Análise da IA (Score: ${ (analysis.probabilidade_fraude * 100).toFixed(2) }%)</strong>
+                    <p>${analysis.justificativa}</p>
+                </div>
+            `;
+            actionsPanel.style.display = 'block';
+
+            document.querySelectorAll('tr.selected').forEach(r => r.classList.remove('selected'));
+            document.querySelector(`[data-id="${id}"]`).classList.add('selected');
+        }
+
+        setInterval(simularTransacao, 3500);
+        console.log("SBank Fraud Sentinel v3.0 iniciado.");
+    </script>
+</body>
+</html>
